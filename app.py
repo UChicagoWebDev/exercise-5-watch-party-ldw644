@@ -174,10 +174,14 @@ def room(room_id):
 
 # -------------------------------- API ROUTES ----------------------------------
 
+def validate_api_key(api_key):
+    return query_db('select * from users where api_key = ?', [api_key], one=True)
+
 # POST to change the user's name
 @app.route('/api/user/name', methods=['POST'])
 def update_username():
-    user = get_user_from_cookie(request)
+    api_key = request.headers.get('api-key')
+    user = validate_api_key(api_key)
     if user is None: return redirect('/')
     
     
@@ -193,7 +197,8 @@ def update_username():
 # POST to change the user's password
 @app.route('/api/user/password', methods=['POST'])
 def update_password():
-    user = get_user_from_cookie(request)
+    api_key = request.headers.get('api-key')
+    user = validate_api_key(api_key)
     if user is None: return redirect('/')
     
     new_password = request.json.get("new_password")
@@ -207,7 +212,8 @@ def update_password():
 # POST to change the name of a room
 @app.route('/api/rooms/<int:room_id>/name', methods=['POST'])
 def update_room_name(room_id):
-    user = get_user_from_cookie(request)
+    api_key = request.headers.get('api-key')
+    user = validate_api_key(api_key)
     if user is None: return redirect('/')
     
     new_room_name = request.json.get("new_room_name")
@@ -222,7 +228,8 @@ def update_room_name(room_id):
 # GET to get all the messages in a room
 @app.route('/api/rooms/<int:room_id>/messages', methods=['GET'])
 def get_all_messages(room_id):
-    user = get_user_from_cookie(request)
+    api_key = request.headers.get('api-key')
+    user = validate_api_key(api_key)
     if user is None: return redirect('/')
     
     last_id = request.args.get('last_id', default=0, type=str)
@@ -243,7 +250,8 @@ def get_all_messages(room_id):
 # POST to post a new message to a room
 @app.route('/api/rooms/<int:room_id>/messages', methods=['POST'])
 def post_message(room_id):
-    user = get_user_from_cookie(request)
+    api_key = request.headers.get('api-key')
+    user = validate_api_key(api_key)
     if user is None: return redirect('/')
 
     comment = request.json.get('comment')

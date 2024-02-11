@@ -19,6 +19,7 @@ function postMessage() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'api-key': WATCH_PARTY_API_KEY,
     },
     body: JSON.stringify({
       "comment": comment,
@@ -34,7 +35,10 @@ function getMessages() {
   if (element.hasAttribute("last_id")) {
     last_id = element.getAttribute("last_id");
   }
-  fetch(`/api/rooms/${room_id}/messages?last_id=${last_id}`)
+  fetch(`/api/rooms/${room_id}/messages?last_id=${last_id}`, {
+    headers: {
+      'api-key': WATCH_PARTY_API_KEY,
+    }})
     .then(response => response.json())
     .then(messages => {
       
@@ -62,6 +66,7 @@ function changeUsername() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'api-key': WATCH_PARTY_API_KEY,
     },
     body: JSON.stringify({
       "new_name": username,
@@ -76,6 +81,7 @@ function changePassword() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'api-key': WATCH_PARTY_API_KEY,
     },
     body: JSON.stringify({
       "new_password": password,
@@ -98,11 +104,11 @@ function hideDisplay() {
 function updateRoomName() {
   var room_id = window.location.pathname.split("/").pop();
   let new_room_name = document.getElementById("roomName").value;
-  alert(new_room_name);
   fetch(`/api/rooms/${room_id}/name`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'api-key': WATCH_PARTY_API_KEY,
     },
     body: JSON.stringify({
       "new_room_name": new_room_name,
