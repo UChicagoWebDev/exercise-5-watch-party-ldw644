@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime
 from flask import * # Flask, g, redirect, render_template, request, url_for
 from functools import wraps
+import json
 
 app = Flask(__name__)
 
@@ -39,11 +40,11 @@ def close_connection(exception):
 def query_db(query, args=(), one=False):
     db = get_db()
     cursor = db.execute(query, args)
-    print("query_db")
-    print(cursor)
+    # print("query_db")
+    # print(cursor)
     rows = cursor.fetchall()
-    print(rows)
-    db.commit()
+    # print(rows)
+    db.commit() 
     cursor.close()
     if rows:
         if one: 
@@ -84,6 +85,7 @@ def index():
 
     if user:
         rooms = query_db('select * from rooms')
+        print("\n",user,rooms,"\n")
         return render_with_error_handling('index.html', user=user, rooms=rooms)
     
     return render_with_error_handling('index.html', user=None, rooms=None)
@@ -173,14 +175,81 @@ def room(room_id):
 # -------------------------------- API ROUTES ----------------------------------
 
 # POST to change the user's name
-@app.route('/api/user/name')
+@app.route('/api/user/name', methods=['POST'])
 def update_username():
-    return {}, 403
+    user = get_user_from_cookie(request)
+    if user is None: return redirect('/')
+    
+    
+    new_name = request.json.get("new_name")
+    _ = query_db("""
+                 UPDATE users 
+                 SET name = ?
+                 WHERE id = ?
+                 """,
+                 [new_name, user['id']])
+    return jsonify(None)
 
 # POST to change the user's password
-
+@app.route('/api/user/password', methods=['POST'])
+def update_password():
+    user = get_user_from_cookie(request)
+    if user is None: return redirect('/')
+    
+    new_password = request.json.get("new_password")
+    _ = query_db("""
+                 UPDATE users 
+                 SET password = ?
+                 WHERE id = ?
+                 """,
+                 [new_password, user['id']])
+    return jsonify(None)
 # POST to change the name of a room
+@app.route('/api/rooms/<int:room_id>/name', methods=['POST'])
+def update_room_name(room_id):
+    user = get_user_from_cookie(request)
+    if user is None: return redirect('/')
+    
+    new_room_name = request.json.get("new_room_name")
+    _ = query_db("""
+                 UPDATE rooms 
+                 SET name = ?
+                 WHERE id = ?
+                 """,
+                 [new_room_name, room_id])
+    return jsonify(None)
 
 # GET to get all the messages in a room
-
+@app.route('/api/rooms/<int:room_id>/messages', methods=['GET'])
+def get_all_messages(room_id):
+    user = get_user_from_cookie(request)
+    if user is None: return redirect('/')
+    
+    last_id = request.args.get('last_id', default=0, type=str)
+    rows = query_db("""
+                    SELECT m.id, m.body, u.name as author
+                    FROM messages m
+                    JOIN users u
+                    ON m.user_id = u.id
+                    WHERE room_id = ?
+                        AND m.id > ?
+                    """
+                    , [room_id, last_id])
+    if rows == None:
+        return jsonify(None)
+    messages = [{"id": row[0], "body": row[1], "author": row[2]} for row in rows ]
+    return jsonify(messages)
+    
 # POST to post a new message to a room
+@app.route('/api/rooms/<int:room_id>/messages', methods=['POST'])
+def post_message(room_id):
+    user = get_user_from_cookie(request)
+    if user is None: return redirect('/')
+
+    comment = request.json.get('comment')
+    _ = query_db("""
+                 INSERT INTO messages(user_id, room_id, body)
+                 VALUES (?, ?, ?)
+                 """, [user['id'], room_id, comment])
+
+    return jsonify(None)
